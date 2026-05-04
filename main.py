@@ -1,54 +1,117 @@
+# import os
+# import time
+# from fastapi import FastAPI, Request
+# from api import api_router
+# from fastapi.middleware.cors import CORSMiddleware
+# from fastapi.responses import JSONResponse
+# from fastapi.staticfiles import StaticFiles
+
+# app = FastAPI()
+
+
+# # @app.middleware("http")
+# # async def log_requests(request: Request, call_next):
+# #     print(f"Request: {request.method} {request.url}, {request.headers}")
+# #     start_time = time.time()
+# #     response = await call_next(request)
+# #     end_time = time.time()
+# #     print(f"Response: {end_time - start_time} seconds")
+# #     response.headers["X-Process-Time"] = str(end_time - start_time)
+# #     return response
+
+# # 1
+
+# # @app.middleware("http")
+# # async def log_requests(request: Request, call_next):
+# #     print(f"Request: {request.method} {request.url}, {request.headers}")
+  
+# #     response = await call_next(request)
+   
+# #     response.headers["X-App-Version"] = '1.0.0'
+# #     return response
+
+# # 2
+
+# # @app.middleware("http")
+# # async def log_requests(request: Request, call_next):
+# #     print(f"Request: {request.headers['user-agent']} ")
+# #     if "Postman" in request.headers['user-agent']:
+# #         print('Diqqat: Dasturchi Postman orqali API ga kirdi!')
+        
+# #     start_time = time.time()
+# #     response = await call_next(request)
+# #     end_time = time.time()
+# #     print(f"Response: {end_time - start_time} seconds")
+# #     response.headers["X-Process-Time"] = str(end_time - start_time)
+# #     return response
+
+# # 3
+ 
+# # @app.middleware('http')
+# # async def log_requests(request: Request, call_next):
+# #     return JSONResponse(
+# #         status_code=503,
+# #         content={
+# #             'message': "Kechirasiz, serverda texnik ishlar olib borilmoqda. 1 soatdan so'ng urinib ko'ring"
+# #         }
+# #     )
+# @app.middleware("http")
+# async def log_requests(request: Request, call_next):
+#     print(f"Request: {request.headers['user-agent']}")
+#     if 'Postman' in request.headers['user-agent']:
+#         print("Request from Postman")
+#     start_time = time.time()
+#     response = await call_next(request)
+#     end_time = time.time()
+#     print(f"Response: {end_time - start_time} seconds")
+#     response.headers["X-Process-Time"] = str(end_time - start_time)
+#     return response
+
+# app.add_middleware(
+#     CORSMiddleware,
+#     allow_origins=["*"],
+#     allow_methods=["*"],
+#     allow_headers=["*"],
+# )
+# app.include_router(api_router)
+
+# UPLOAD_FOLDER = "uploads"
+# os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+# app.mount("/static", StaticFiles(directory="uploads"), name="static")
+
+
+
+
+
+
+import os
 import time
 from fastapi import FastAPI, Request
 from api import api_router
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
+
+# DATABASE importlarini qo'shing
+from database import engine, Base 
 
 app = FastAPI()
 
+# --- Jadvallarni avtomatik yaratish qismi ---
+@app.on_event("startup")
+async def startup():
+    async with engine.begin() as conn:
+        # Bu kod barcha modellarni (User, Todo) bazada yaratadi
+        await conn.run_sync(Base.metadata.create_all)
+# --------------------------------------------
 
-# @app.middleware("http")
-# async def log_requests(request: Request, call_next):
-#     print(f"Request: {request.method} {request.url}, {request.headers}")
-#     start_time = time.time()
-#     response = await call_next(request)
-#     end_time = time.time()
-#     print(f"Response: {end_time - start_time} seconds")
-#     response.headers["X-Process-Time"] = str(end_time - start_time)
-#     return response
-
-
-# @app.middleware("http")
-# async def log_requests(request: Request, call_next):
-#     print(f"Request: {request.method} {request.url}, {request.headers}")
-  
-#     response = await call_next(request)
-   
-#     response.headers["X-App-Version"] = '1.0.0'
-#     return response
-
-
-# @app.middleware("http")
-# async def log_requests(request: Request, call_next):
-#     print(f"Request: {request.headers['user-agent']} ")
-#     if "Postman" in request.headers['user-agent']:
-#         print('Diqqat: Dasturchi Postman orqali API ga kirdi!')
-        
-#     start_time = time.time()
-#     response = await call_next(request)
-#     end_time = time.time()
-#     print(f"Response: {end_time - start_time} seconds")
-#     response.headers["X-Process-Time"] = str(end_time - start_time)
-#     return response
-   
-@app.middleware('http')
+@app.middleware("http")
 async def log_requests(request: Request, call_next):
-    return JSONResponse(
-        status_code=503,
-        content={
-            'message': "Kechirasiz, serverda texnik ishlar olib borilmoqda. 1 soatdan so'ng urinib ko'ring"
-        }
-    )
+    # ... (sizning kodingiz) ...
+    start_time = time.time()
+    response = await call_next(request)
+    end_time = time.time()
+    response.headers["X-Process-Time"] = str(end_time - start_time)
+    return response
 
 app.add_middleware(
     CORSMiddleware,
@@ -56,4 +119,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 app.include_router(api_router)
+
+UPLOAD_FOLDER = "uploads"
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+app.mount("/static", StaticFiles(directory="uploads"), name="static")
